@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -28,7 +30,20 @@ func NewPlasma(config *Config) *Plasma {
 func (p *Plasma) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Got request: [%s] %s", r.Method, r.URL.Path)
 
-	// TODO: Add request verification
+	buffer, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		log.Printf("Error reading request body: %v", err)
+		return
+	}
+	bodyString := string(buffer)
+	threat := GetThreat(r.URL.RawQuery, bodyString)
+	if threat != "" {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		log.Printf("Blocked request due to detected threat: %s", threat)
+		return
+	}
+	r.Body = io.NopCloser(bytes.NewBuffer(buffer))
 
 	p.proxy.ServeHTTP(w, r)
 }

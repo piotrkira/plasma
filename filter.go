@@ -1,0 +1,32 @@
+package main
+
+import (
+	"regexp"
+	"strings"
+)
+
+type Threat string
+
+var sqlInjectionPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)\b(select|delete|update|alter)\b.*`),
+}
+
+func ContainsSqlInjectionPattern(data string) bool {
+	data = strings.ToLower(data)
+	for _, pattern := range sqlInjectionPatterns {
+		if pattern.MatchString(data) {
+			return true
+		}
+	}
+	return false
+}
+
+func GetThreat(urlQuery, body string) Threat {
+	if ContainsSqlInjectionPattern(urlQuery) {
+		return "URL_SQL_INJECTION"
+	}
+	if ContainsSqlInjectionPattern(body) {
+		return "BODY_SQL_INJECTION"
+	}
+	return ""
+}
