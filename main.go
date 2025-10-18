@@ -10,11 +10,13 @@ import (
 )
 
 type Config struct {
-	TargetServerUrl string
+	TargetServerUrl   string
+	MaxRequestsPerMin int
 }
 
 type Plasma struct {
-	proxy *httputil.ReverseProxy
+	proxy       *httputil.ReverseProxy
+	rateLimiter *RateLimiter
 }
 
 func NewPlasma(config *Config) *Plasma {
@@ -23,12 +25,19 @@ func NewPlasma(config *Config) *Plasma {
 		log.Fatalf("Target Server URL is incorrect %v", err)
 	}
 	return &Plasma{
-		proxy: httputil.NewSingleHostReverseProxy(targetServerUrl),
+		proxy:       httputil.NewSingleHostReverseProxy(targetServerUrl),
+		rateLimiter: NewRateLimiter(config.MaxRequestsPerMin),
 	}
 }
 
 func (p *Plasma) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Got request: [%s] %s", r.Method, r.URL.Path)
+
+	if !p.rateLimiter.IsAllowed(r.RemoteAddr) {
+		http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+		log.Printf("Rate limit exceeded for %s", r.RemoteAddr)
+		return
+	}
 
 	buffer, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -49,7 +58,7 @@ func (p *Plasma) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	config := &Config{TargetServerUrl: "http://localhost:8000"}
+	config := &Config{TargetServerUrl: "http://localhost:8000", MaxRequestsPerMin: 10}
 	plasma := NewPlasma(config)
 	server := http.Server{
 		Addr:    ":8080",
