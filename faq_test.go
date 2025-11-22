@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -63,14 +64,9 @@ func TestHandleFAQ_MovieQuestion(t *testing.T) {
 				if tt.expectedTitle != "" {
 					contains := false
 					for _, word := range []string{"Color", "Magic", "Discworld"} {
-						if len(response.Answer) > 0 && contains {
+						if strings.Contains(response.Answer, word) {
+							contains = true
 							break
-						}
-						for i := 0; i < len(response.Answer)-len(word)+1; i++ {
-							if response.Answer[i:i+len(word)] == word {
-								contains = true
-								break
-							}
 						}
 					}
 					if !contains {

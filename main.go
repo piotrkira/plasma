@@ -33,15 +33,15 @@ func NewPlasma(config *Config) *Plasma {
 func (p *Plasma) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Got request: [%s] %s", r.Method, r.URL.Path)
 
-	// Handle FAQ endpoint
-	if r.URL.Path == "/faq" {
-		HandleFAQ(w, r)
-		return
-	}
-
 	if !p.rateLimiter.IsAllowed(r.RemoteAddr) {
 		http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 		log.Printf("Rate limit exceeded for %s", r.RemoteAddr)
+		return
+	}
+
+	// Handle FAQ endpoint
+	if r.URL.Path == "/faq" {
+		HandleFAQ(w, r)
 		return
 	}
 
