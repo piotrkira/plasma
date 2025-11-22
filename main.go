@@ -39,6 +39,12 @@ func (p *Plasma) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle FAQ endpoint
+	if r.URL.Path == "/faq" {
+		HandleFAQ(w, r)
+		return
+	}
+
 	buffer, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
